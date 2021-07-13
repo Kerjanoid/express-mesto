@@ -20,7 +20,6 @@
   },
   "homepage": "https://github.com/yandex-praktikum/express-mesto#readme",
   "dependencies": {
-    "editorconfig": "^0.15.3",
     "express": "^4.17.1",
     "mongoose": "^5.13.2"
   },

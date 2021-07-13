@@ -56,7 +56,7 @@ module.exports.likeCard = (req, res) => {
       if (err.name === "CastError") {
         res.status(Error400).send({ message: "Переданы некорректные данные для постановки лайка." });
       } else if (err.message === "IncorrectCardID") {
-        res.status(Error404).send({ message: "Адрес указан некорректно." });
+        res.status(Error404).send({ message: "Карточка с указанным _id не найдена." });
       } else {
         res.status(Error500).send({ message: "На сервере произошла ошибка." });
       }
@@ -75,7 +75,7 @@ module.exports.dislikeCard = (req, res) => {
       if (err.name === "CastError") {
         res.status(Error400).send({ message: "Переданы некорректные данные для снятия лайка." });
       } else if (err.message === "IncorrectCardID") {
-        res.status(Error404).send({ message: "Адрес указан некорректно." });
+        res.status(Error404).send({ message: "Карточка с указанным _id не найдена." });
       } else {
         res.status(Error500).send({ message: "На сервере произошла ошибка." });
       }
