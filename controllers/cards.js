@@ -31,6 +31,7 @@ module.exports.createCard = (req, res) => {
 
 module.exports.deleteCardByID = (req, res) => {
   Card.findById(req.params.cardId)
+    .orFail(new Error("IncorrectCardID"))
     .then((card) => {
       card.remove();
       res.status(200).send({ message: `Карточка c _id: ${card._id} успешно удалена.` });
@@ -38,8 +39,10 @@ module.exports.deleteCardByID = (req, res) => {
     .catch((err) => {
       if (err.name === "CastError") {
         res.status(Error400).send({ message: "Переданы некорректные данные." });
-      } else {
+      } else if (err.message === "IncorrectCardID") {
         res.status(Error404).send({ message: "Карточка с указанным _id не найдена." });
+      } else {
+        res.status(Error500).send({ message: "На сервере произошла ошибка." });
       }
     });
 };
