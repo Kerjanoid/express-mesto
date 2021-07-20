@@ -1,3 +1,4 @@
+const jwt = require("jsonwebtoken");
 const User = require("../models/user");
 
 const Error400 = 400;
@@ -91,5 +92,18 @@ module.exports.updateAvatar = (req, res) => {
       } else {
         res.status(Error500).send({ message: "На сервере произошла ошибка." });
       }
+    });
+};
+
+module.exports.login = (req, res) => {
+  const { email, password } = req.body;
+
+  return User.findUserByCredentials(email, password)
+    .then((user) => {
+      const token = jwt.sign({ _id: user._id }, "super-strong-secret", { expiresIn: "7d" });
+      res.send({ token });
+    })
+    .catch((err) => {
+      res.status(401).send({ message: err.message });
     });
 };
