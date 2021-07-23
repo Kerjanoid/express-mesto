@@ -6,14 +6,11 @@ const mongoose = require("mongoose");
 
 const Error404 = 404;
 
+const { login, createUser } = require("./controllers/users");
+const auth = require("./middlewares/auth");
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use((req, res, next) => {
-  req.user = {
-    _id: "60e8847f5fefa73e68838989",
-  };
-  next();
-});
 
 mongoose.connect("mongodb://localhost:27017/mestodb", {
   useUnifiedTopology: true,
@@ -21,6 +18,11 @@ mongoose.connect("mongodb://localhost:27017/mestodb", {
   useCreateIndex: true,
   useFindAndModify: false,
 });
+
+app.post("/signup", createUser);
+app.post("/signin", login);
+
+app.use(auth);
 
 app.use("/", require("./routes/users"));
 app.use("/", require("./routes/cards"));

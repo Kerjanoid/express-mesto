@@ -33,8 +33,12 @@ module.exports.deleteCardByID = (req, res) => {
   Card.findById(req.params.cardId)
     .orFail(new Error("IncorrectCardID"))
     .then((card) => {
-      card.remove();
-      res.status(200).send({ message: `Карточка c _id: ${card._id} успешно удалена.` });
+      if (card.owner.toHexString() === req.user._id) {
+        card.remove();
+        res.status(200).send({ message: `Карточка c _id: ${card._id} успешно удалена.` });
+      } else {
+        res.status(401).send({ message: `Карточку c _id: ${card._id} создал другой пользователь. Невозможно удалить.` });
+      }
     })
     .catch((err) => {
       if (err.name === "CastError") {
