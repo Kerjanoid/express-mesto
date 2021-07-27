@@ -3,12 +3,7 @@ const express = require("express");
 const app = express();
 const { PORT = 3000 } = process.env;
 const mongoose = require("mongoose");
-
-const Error400 = 400;
-const Error401 = 401;
-const Error404 = 404;
-const Error409 = 409;
-const Error500 = 500;
+const { celebrate, Joi, errors } = require("celebrate");
 
 const { login, createUser } = require("./controllers/users");
 const auth = require("./middlewares/auth");
@@ -24,8 +19,22 @@ mongoose.connect("mongodb://localhost:27017/mestodb", {
   useFindAndModify: false,
 });
 
-app.post("/signup", createUser);
-app.post("/signin", login);
+app.post("/signup", celebrate({
+  body: Joi.object().keys({
+    name: Joi.string().min(2).max(30),
+    about: Joi.string().min(2).max(30),
+    avatar: Joi.string(),
+    email: Joi.string().email().required(),
+    password: Joi.string().required().min(8).max(35),
+  }),
+}), createUser);
+
+app.post("/signin", celebrate({
+  body: Joi.object().keys({
+    email: Joi.string().email().required(),
+    password: Joi.string().required().min(8).max(35),
+  }),
+}), login);
 
 app.use(auth);
 
@@ -33,8 +42,10 @@ app.use("/", require("./routes/users"));
 app.use("/", require("./routes/cards"));
 
 app.use("*", (req, res) => {
-  res.status(Error404).send({ message: "Ресурс не найден." });
+  res.status(404).send({ message: "Ресурс не найден." });
 });
+
+app.use(errors());
 
 app.use(errorHandler);
 

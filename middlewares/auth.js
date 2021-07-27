@@ -1,4 +1,6 @@
 const jwt = require("jsonwebtoken");
+const UnauthorizedError = require("../errors/unauthorized-err");
+const ForbiddenError = require("../errors/forbidden-err");
 
 const extractBearerToken = (header) => header.replace("Bearer ", "");
 
@@ -6,9 +8,7 @@ module.exports = (req, res, next) => {
   const { authorization } = req.headers;
 
   if (!authorization || !authorization.startsWith("Bearer ")) {
-    const err = new Error("UnauthorizedError");
-    err.statusCode = 401;
-    next(err);
+    next(new UnauthorizedError("Необходима авторизация"));
   }
 
   const token = extractBearerToken(authorization);
@@ -17,9 +17,7 @@ module.exports = (req, res, next) => {
   try {
     payload = jwt.verify(token, "super-strong-secret");
   } catch (e) {
-    const err = new Error("ForbiddenError");
-    err.statusCode = 403;
-    next(err);
+    next(new ForbiddenError("Недостаточно прав доступа"));
   }
 
   req.user = payload;

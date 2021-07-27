@@ -1,6 +1,9 @@
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const User = require("../models/user");
+const BadRequestError = require("../errors/bad-request-err");
+const NotFoundError = require("../errors/not-found-err");
+const ConflictError = require("../errors/conflict-err");
 
 module.exports.getUsers = (req, res, next) => {
   User.find({})
@@ -13,7 +16,13 @@ module.exports.getUsers = (req, res, next) => {
 module.exports.getUserByID = (req, res, next) => {
   User.findById(req.user._id)
     .then((user) => { res.status(200).send(user); })
-    .catch(next);
+    .catch((err) => {
+      if (err.name === "CastError") {
+        next(new BadRequestError("Переданы некорректные данные."));
+      } else {
+        next(err);
+      }
+    });
 };
 
 module.exports.createUser = (req, res, next) => {
@@ -21,19 +30,27 @@ module.exports.createUser = (req, res, next) => {
     name, about, avatar, email, password,
   } = req.body;
 
-  bcrypt.hash(password, 10)
-    .then((hash) => {
-      User.create({
+  User.findOne({ email }).then((usr) => {
+    if (usr) {
+      throw new ConflictError("Пользователь с таким email уже существует");
+    }
+    bcrypt.hash(password, 10)
+      .then((hash) => User.create({
         name, about, avatar, email, password: hash,
+      }))
+      .then((user) => {
+        const userDoc = user._doc;
+        delete userDoc.password;
+        res.status(200).send(user);
       })
-        .then((user) => {
-          const userDoc = user._doc;
-          delete userDoc.password;
-          res.status(200).send(user);
-        })
-        .catch(next);
-    })
-    .catch(next);
+      .catch((err) => {
+        if (err.name === "ValidationError") {
+          next(new BadRequestError(`${Object.values(err.errors).map((error) => error.message).join(" ")}`));
+        } else {
+          next();
+        }
+      });
+  }).catch(next);
 };
 
 module.exports.updateProfile = (req, res, next) => {
@@ -49,14 +66,22 @@ module.exports.updateProfile = (req, res, next) => {
     .then((user) => {
       res.status(200).send(user);
     })
-    .catch(next);
+    .catch((err) => {
+      if (err.message === "IncorrectID") {
+        next(new NotFoundError("Пользователь с указанным _id не найден."));
+      } else if (err.name === "ValidationError") {
+        next(new BadRequestError(`${Object.values(err.errors).map((error) => error.message).join(" ")}`));
+      } else {
+        next(err);
+      }
+    });
 };
 
 module.exports.updateAvatar = (req, res, next) => {
   const { avatar } = req.body;
 
   if (!avatar) {
-    throw new Error("EmptyAvatarField");
+    throw new BadRequestError("Поле 'avatar' должно быть заполнено");
   } else {
     User.findByIdAndUpdate(req.user._id,
       { avatar },
@@ -67,7 +92,13 @@ module.exports.updateAvatar = (req, res, next) => {
       })
       .orFail(new Error("IncorrectID"))
       .then((user) => { res.status(200).send(user); })
-      .catch(next);
+      .catch((err) => {
+        if (err.message === "IncorrectID") {
+          next(new NotFoundError("Пользователь с указанным _id не найден."));
+        } else {
+          next(err);
+        }
+      });
   }
 };
 
@@ -75,7 +106,7 @@ module.exports.login = (req, res, next) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
-    throw new Error("EmptyField");
+    throw new BadRequestError("Email или пароль отсутствуют");
   } else {
     User.findOne({ email }).select("+password")
       .orFail(new Error("IncorrectEmail"))
@@ -83,16 +114,19 @@ module.exports.login = (req, res, next) => {
         bcrypt.compare(password, user.password)
           .then((matched) => {
             if (!matched) {
-              const err = new Error("IncorrectPassword");
-              err.statusCode = 401;
-              next(err);
+              next(new BadRequestError("Указан некорректный Email или пароль."));
             } else {
               const token = jwt.sign({ _id: user._id }, "super-strong-secret", { expiresIn: "7d" });
               res.status(201).send({ token });
             }
-          })
-          .catch(next);
+          });
       })
-      .catch(next);
+      .catch((err) => {
+        if (err.message === "IncorrectEmail") {
+          next(new BadRequestError("Указан некорректный Email или пароль."));
+        } else {
+          next(err);
+        }
+      });
   }
 };
