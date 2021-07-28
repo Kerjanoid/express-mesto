@@ -14,6 +14,21 @@ module.exports.getUsers = (req, res, next) => {
 };
 
 module.exports.getUserByID = (req, res, next) => {
+  User.findById(req.params.userId)
+    .orFail(new Error("IncorrectID"))
+    .then((user) => { res.status(200).send(user); })
+    .catch((err) => {
+      if (err.name === "CastError") {
+        next(new BadRequestError("Переданы некорректные данные."));
+      } else if (err.message === "IncorrectID") {
+        next(new NotFoundError(`Карточка с указанным _id: ${req.params.userId} не найдена.`));
+      } else {
+        next(err);
+      }
+    });
+};
+
+module.exports.getMyInfo = (req, res, next) => {
   User.findById(req.user._id)
     .then((user) => { res.status(200).send(user); })
     .catch((err) => {
@@ -95,6 +110,8 @@ module.exports.updateAvatar = (req, res, next) => {
       .catch((err) => {
         if (err.message === "IncorrectID") {
           next(new NotFoundError("Пользователь с указанным _id не найден."));
+        } else if (err.name === "ValidationError") {
+          next(new BadRequestError(`${Object.values(err.errors).map((error) => error.message).join(" ")}`));
         } else {
           next(err);
         }

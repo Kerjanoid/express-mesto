@@ -31,7 +31,7 @@ module.exports.deleteCardByID = (req, res, next) => {
   Card.findById(req.params.cardId)
     .orFail(new Error("IncorrectCardID"))
     .then((card) => {
-      if (card.owner.toHexString() === req.user._id) {
+      if (card.owner.toString() === req.user._id.toString()) {
         card.remove();
         res.status(200).send({ message: `Карточка c _id: ${req.params.cardId} успешно удалена.` });
       } else {
