@@ -1,6 +1,5 @@
 const jwt = require("jsonwebtoken");
 const UnauthorizedError = require("../errors/unauthorized-err");
-const ForbiddenError = require("../errors/forbidden-err");
 
 const extractBearerToken = (header) => header.replace("Bearer ", "");
 
@@ -15,12 +14,12 @@ module.exports = (req, res, next) => {
   let payload;
 
   try {
-    payload = jwt.verify(token, "super-strong-secret");
+    payload = jwt.verify(token, process.env.JWT_SECRET);
   } catch (e) {
-    next(new ForbiddenError("Недостаточно прав доступа"));
+    next(new UnauthorizedError("Необходима авторизация"));
   }
 
   req.user = payload;
 
-  return next();
+  next();
 };

@@ -8,6 +8,9 @@ const { celebrate, Joi, errors } = require("celebrate");
 const { login, createUser } = require("./controllers/users");
 const auth = require("./middlewares/auth");
 const errorHandler = require("./middlewares/error");
+const regExp = require("./regexp/regexp");
+const NotFoundError = require("./errors/not-found-err");
+require("dotenv").config();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -23,7 +26,7 @@ app.post("/signup", celebrate({
   body: Joi.object().keys({
     name: Joi.string().min(2).max(30),
     about: Joi.string().min(2).max(30),
-    avatar: Joi.string(),
+    avatar: Joi.string().pattern(regExp),
     email: Joi.string().email().required(),
     password: Joi.string().required().min(8).max(35),
   }),
@@ -41,9 +44,7 @@ app.use(auth);
 app.use("/", require("./routes/users"));
 app.use("/", require("./routes/cards"));
 
-app.use("*", (req, res) => {
-  res.status(404).send({ message: "Ресурс не найден." });
-});
+app.use("*", (req, res, next) => next(new NotFoundError("Ресурс не найден.")));
 
 app.use(errors());
 

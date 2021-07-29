@@ -62,7 +62,7 @@ module.exports.createUser = (req, res, next) => {
         if (err.name === "ValidationError") {
           next(new BadRequestError(`${Object.values(err.errors).map((error) => error.message).join(" ")}`));
         } else {
-          next();
+          next(err);
         }
       });
   }).catch(next);
@@ -122,28 +122,24 @@ module.exports.updateAvatar = (req, res, next) => {
 module.exports.login = (req, res, next) => {
   const { email, password } = req.body;
 
-  if (!email || !password) {
-    throw new BadRequestError("Email или пароль отсутствуют");
-  } else {
-    User.findOne({ email }).select("+password")
-      .orFail(new Error("IncorrectEmail"))
-      .then((user) => {
-        bcrypt.compare(password, user.password)
-          .then((matched) => {
-            if (!matched) {
-              next(new BadRequestError("Указан некорректный Email или пароль."));
-            } else {
-              const token = jwt.sign({ _id: user._id }, "super-strong-secret", { expiresIn: "7d" });
-              res.status(201).send({ token });
-            }
-          });
-      })
-      .catch((err) => {
-        if (err.message === "IncorrectEmail") {
-          next(new BadRequestError("Указан некорректный Email или пароль."));
-        } else {
-          next(err);
-        }
-      });
-  }
+  User.findOne({ email }).select("+password")
+    .orFail(new Error("IncorrectEmail"))
+    .then((user) => {
+      bcrypt.compare(password, user.password)
+        .then((matched) => {
+          if (!matched) {
+            next(new BadRequestError("Указан некорректный Email или пароль."));
+          } else {
+            const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
+            res.status(201).send({ token });
+          }
+        });
+    })
+    .catch((err) => {
+      if (err.message === "IncorrectEmail") {
+        next(new BadRequestError("Указан некорректный Email или пароль."));
+      } else {
+        next(err);
+      }
+    });
 };
