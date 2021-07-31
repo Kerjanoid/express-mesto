@@ -6,7 +6,9 @@
 3. Express
 4. MongoDB
 5. Mongoose
-6. ESlint
+6. ESlint 
+  
+### Бэкенд для проекта Mesto-react (проект будет доработан и объединен с Mesto-react)
 
 ## Директории
 
